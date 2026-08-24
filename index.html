@@ -593,15 +593,18 @@ function initGovernance(){
  [govBrand,govWeight,govTracking,govMaturity].forEach(x=>x.addEventListener("change",renderGovernance))
 }
 function renderGovernance(){
- let x=C.filter(eligible);if(govBrand.value!=="Todos")x=x.filter(c=>c.brand===govBrand.value);if(govWeight.value!=="Todos")x=x.filter(c=>String(c.weight).toUpperCase()===govWeight.value);if(govTracking.value==="Com checklist")x=x.filter(tracked);if(govTracking.value==="Sem checklist")x=x.filter(c=>!tracked(c));if(govMaturity.value!=="Todos")x=x.filter(c=>maturity(readinessPct(c))===govMaturity.value);
+ let x=filtered().filter(eligible);if(govBrand.value!=="Todos")x=x.filter(c=>c.brand===govBrand.value);if(govWeight.value!=="Todos")x=x.filter(c=>String(c.weight).toUpperCase()===govWeight.value);if(govTracking.value==="Com checklist")x=x.filter(tracked);if(govTracking.value==="Sem checklist")x=x.filter(c=>!tracked(c));if(govMaturity.value!=="Todos")x=x.filter(c=>maturity(readinessPct(c))===govMaturity.value);
  govCount.textContent=`${x.length} campanhas`;
- const all=C.filter(eligible),trackedAll=all.filter(tracked);
- gateCards.innerHTML=[
-   ["KO1","Direcionamento",trackedAll.filter(c=>kickoffReadiness(c,1)===100).length,"campanhas 100% no checklist"],
-   ["KO2","Construção",trackedAll.filter(c=>kickoffReadiness(c,2)===100).length,"campanhas 100% no checklist"],
-   ["KO3","Consolidação",trackedAll.filter(c=>kickoffReadiness(c,3)===100).length,"campanhas 100% no checklist"],
-   ["KO4","Segurança",all.filter(c=>koDate(c,4)).length,"campanhas com marco KO4 calculado"]
- ].map(z=>`<div class="gate"><div class="gate-num">${z[0]}</div><h4>${z[1]}</h4><div class="gate-count">${z[2]}</div><p>${z[3]}</p></div>`).join("");
+ const all=x;
+ const withReadiness=all.filter(c=>tracked(c)&&readinessPct(c)!==null);
+ const maturityCount=(min,max)=>withReadiness.filter(c=>{const p=readinessPct(c);return p>=min&&p<=max}).length;
+ const maturityCards=[
+   ["0-40%","EstruturaÃ§Ã£o",maturityCount(0,40)],
+   ["41-60%","ConstruÃ§Ã£o",maturityCount(41,60)],
+   ["61-80%","ConsolidaÃ§Ã£o",maturityCount(61,80)],
+   ["81-100%","Pronto para ExecuÃ§Ã£o",maturityCount(81,100)]
+ ];
+ gateCards.innerHTML=maturityCards.map(z=>`<div class="gate"><div class="gate-num">${z[0]}</div><h4>${z[1]}</h4><div class="gate-count">${z[2]}</div><p>campanhas com checklist</p></div>`).join("");
  govTable.innerHTML=`<table><thead><tr><th>Marca</th><th>Campanha</th><th>Peso</th><th>Lançamento</th><th>Checklist</th><th>Readiness KO1–KO3</th><th>Maturidade</th><th>KO1</th><th>KO2</th><th>KO3</th><th>Estágio esperado</th></tr></thead><tbody>${x.sort((a,b)=>(dt(a.launchTrade)||new Date(2099,0,1))-(dt(b.launchTrade)||new Date(2099,0,1))).map(c=>{const p=readinessPct(c),m=maturity(p);return`<tr onclick="openReadiness(${c.id})"><td>${esc(c.brand)}</td><td class="campaign"><strong>${esc(c.campaign)}</strong><small>${esc(c.category)} · ${esc(c.status)}</small></td><td>${weightBadge(c.weight)}</td><td>${fd(c.launchTrade)}</td><td>${tracked(c)?badge("Com checklist","ok"):badge("Sem checklist","danger")}</td><td>${p===null?"—":`<div class="progress"><div class="progress-track"><div class="progress-fill" style="width:${p}%;background:${pcolor(p)}"></div></div><span>${p}%</span></div>`}</td><td>${badge(m,maturityClass(m))}</td><td>${fd(koDate(c,1))}</td><td>${fd(koDate(c,2))}</td><td>${fd(koDate(c,3))}</td><td>${esc(currentGovStage(c))}</td></tr>`}).join("")}</tbody></table>`;
 }
 
