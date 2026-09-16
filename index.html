@@ -202,7 +202,7 @@ button{cursor:pointer}
 <main class="main">
 <section class="filters">
   <input id="search" placeholder="Buscar campanha, marca, categoria...">
-  <select id="brandFilter"></select><select id="monthFilter"></select><select id="weightFilter"></select><select id="phaseFilter"></select><select id="categoryFilter"></select><select id="maturityFilter"></select>
+  <select id="brandFilter"></select><select id="monthFilter"></select><select id="yearFilter"></select><select id="weightFilter"></select><select id="phaseFilter"></select><select id="categoryFilter"></select><select id="maturityFilter"></select>
   <button class="clear" onclick="clearFilters()">Limpar</button>
 </section>
 
@@ -330,7 +330,7 @@ const RULES=(DB.rules && typeof DB.rules==="object")?DB.rules:EMPTY_DB.rules;
 const MONTHS=["JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"],MS=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 const COLORS={"Olympikus":"#4169E1","Under Armour":"#D92D20","Mizuno":"#0B1F3A","Não informado":"#98a2b3"};
 const EMPTY=new Set(["","-","PENDENTE","PENDENTE DE INFORMAÇÃO","N/A","NÃO INFORMADO","NO INFORMATION","NULL","NONE"]);
-const state={search:"",brand:"Todos",month:"Todos",weight:"Todos",phase:"Todos",category:"Todos",maturity:"Todos"};
+const state={search:"",brand:"Todos",month:"Todos",year:"Todos",weight:"Todos",phase:"Todos",category:"Todos",maturity:"Todos"};
 let selectedReverse=null,selectedActivation=null;
 const scheduleEl=document.getElementById("schedule");
 const campaignTagCardsEl=document.getElementById("campaignTagCards");
@@ -356,8 +356,9 @@ function color(b){return COLORS[b]||"#98a2b3"}
 function eligible(c){return["OURO","PRATA"].includes(String(c.weight).toUpperCase())}
 function badge(text,cls="info"){return`<span class="badge ${cls}">${esc(text)}</span>`}
 function weightBadge(w){const s=String(w).toUpperCase();return badge(w,s==="OURO"?"ouro":s==="PRATA"?"prata":s==="BRONZE"?"bronze":"other")}
+function campaignYear(c){const d=dt(c.launchTrade)||dt(c.launchMkt)||dt(c.projectStart);return d?String(d.getFullYear()):"Sem ano"}
 function phase(c){const t=today(),l=dt(c.launchTrade),r=dt(c.report);if(r&&r<t)return"Report vencido";if(l&&l<=t&&(!r||t<=r))return"Em execução";if(l){const x=diff(l,t);if(x>0&&x<=60)return"Próximos 60 dias";if(x>60)return"Futura"}return"Sem data"}
-function filtered(){const q=norm(state.search);return C.filter(c=>{const h=norm([c.campaign,c.brand,c.category,c.channel,c.month,c.status,c.weight,c.season].join(" "));return(!q||h.includes(q))&&(state.brand==="Todos"||c.brand===state.brand)&&(state.month==="Todos"||c.month===state.month)&&(state.weight==="Todos"||c.weight===state.weight)&&(state.phase==="Todos"||phase(c)===state.phase)&&(state.category==="Todos"||c.category===state.category)&&(state.maturity==="Todos"||maturity(readinessPct(c))===state.maturity)})}
+function filtered(){const q=norm(state.search);return C.filter(c=>{const h=norm([c.campaign,c.brand,c.category,c.channel,c.month,c.status,c.weight,c.season].join(" "));return(!q||h.includes(q))&&(state.brand==="Todos"||c.brand===state.brand)&&(state.month==="Todos"||c.month===state.month)&&(state.year==="Todos"||campaignYear(c)===state.year)&&(state.weight==="Todos"||c.weight===state.weight)&&(state.phase==="Todos"||phase(c)===state.phase)&&(state.category==="Todos"||c.category===state.category)&&(state.maturity==="Todos"||maturity(readinessPct(c))===state.maturity)})}
 function prRows(c){return P.filter(p=>p.campaignId===c.id)}
 function tracked(c){return prRows(c).length>0}
 function requiredRows(c){return prRows(c).filter(p=>isRequiredApplicable(p))}
@@ -395,8 +396,8 @@ function currentGovStage(c){if(!eligible(c))return"Fora do fluxo";if(!dt(c.launc
 function kickoffReadiness(c,k){const rows=requiredRows(c).filter(p=>Number(p.kickoff)===k);return readinessPct(c,rows)}
 
 
-function initFilters(){const uniq=k=>[...new Set(C.map(c=>c[k]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"pt-BR"));brandFilter.innerHTML=`<option value="Todos">Todas as marcas</option>`+uniq("brand").map(x=>`<option>${esc(x)}</option>`).join("");monthFilter.innerHTML=`<option value="Todos">Todos os meses</option>`+MONTHS.filter(m=>C.some(c=>String(c.month||"").trim()===m)).map(x=>`<option>${x}</option>`).join("");weightFilter.innerHTML=`<option value="Todos">Todos os pesos</option>`+uniq("weight").map(x=>`<option>${esc(x)}</option>`).join("");phaseFilter.innerHTML=`<option value="Todos">Todas as fases</option>`+["Report vencido","Em execução","Próximos 60 dias","Futura","Sem data"].map(x=>`<option>${x}</option>`).join("");categoryFilter.innerHTML=`<option value="Todos">Todas as categorias</option>`+uniq("category").map(x=>`<option>${esc(x)}</option>`).join("");maturityFilter.innerHTML=`<option value="Todos">Todas as maturidades</option>`+["EstruturaÃ§Ã£o","ConstruÃ§Ã£o","ConsolidaÃ§Ã£o","Pronto para ExecuÃ§Ã£o","Go Live Ready","Sem acompanhamento"].map(x=>`<option>${x}</option>`).join("");search.addEventListener("input",e=>{state.search=e.target.value;renderAll()});["brand","month","weight","phase","category","maturity"].forEach(k=>document.getElementById(k+"Filter").addEventListener("change",e=>{state[k]=e.target.value;renderAll()}))}
-function clearFilters(){Object.assign(state,{search:"",brand:"Todos",month:"Todos",weight:"Todos",phase:"Todos",category:"Todos",maturity:"Todos"});search.value="";["brand","month","weight","phase","category","maturity"].forEach(k=>document.getElementById(k+"Filter").value="Todos");renderAll()}
+function initFilters(){const uniq=k=>[...new Set(C.map(c=>c[k]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"pt-BR"));brandFilter.innerHTML=`<option value="Todos">Todas as marcas</option>`+uniq("brand").map(x=>`<option>${esc(x)}</option>`).join("");monthFilter.innerHTML=`<option value="Todos">Todos os meses</option>`+MONTHS.filter(m=>C.some(c=>String(c.month||"").trim()===m)).map(x=>`<option>${x}</option>`).join("");yearFilter.innerHTML=`<option value="Todos">Todos os anos</option>`+[...new Set(C.map(c=>campaignYear(c)).filter(x=>x!=="Sem ano"))].sort().map(x=>`<option>${x}</option>`).join("");weightFilter.innerHTML=`<option value="Todos">Todos os pesos</option>`+uniq("weight").map(x=>`<option>${esc(x)}</option>`).join("");phaseFilter.innerHTML=`<option value="Todos">Todas as fases</option>`+["Report vencido","Em execução","Próximos 60 dias","Futura","Sem data"].map(x=>`<option>${x}</option>`).join("");categoryFilter.innerHTML=`<option value="Todos">Todas as categorias</option>`+uniq("category").map(x=>`<option>${esc(x)}</option>`).join("");maturityFilter.innerHTML=`<option value="Todos">Todas as maturidades</option>`+["Estrutura\\u00e7\\u00e3o","Constru\\u00e7\\u00e3o","Consolida\\u00e7\\u00e3o","Pronto para Execu\\u00e7\\u00e3o","Go Live Ready","Sem acompanhamento"].map(x=>`<option>${x}</option>`).join("");search.addEventListener("input",e=>{state.search=e.target.value;renderAll()});["brand","month","year","weight","phase","category","maturity"].forEach(k=>document.getElementById(k+"Filter").addEventListener("change",e=>{state[k]=e.target.value;renderAll()}))}
+function clearFilters(){Object.assign(state,{search:"",brand:"Todos",month:"Todos",year:"Todos",weight:"Todos",phase:"Todos",category:"Todos",maturity:"Todos"});search.value="";["brand","month","year","weight","phase","category","maturity"].forEach(k=>document.getElementById(k+"Filter").value="Todos");renderAll()}
 function goTab(id){document.querySelector(`[data-target="${id}"]`).click()}
 
 function normalizeTagValue(v,fallback){
@@ -501,6 +502,7 @@ function combinedFiltered(ignoreTag=false){
     if(q&&!text.includes(q))return false;
     if(state.brand!=="Todos"&&x.brand!==state.brand)return false;
     if(state.month!=="Todos"&&month!==String(state.month).trim().toUpperCase())return false;
+    if(state.year!=="Todos"&&campaignItemYear(item)!==state.year)return false;
     if(state.weight!=="Todos"&&(item.source!=="campaign"||x.weight!==state.weight))return false;
     if(state.phase!=="Todos"&&(item.source!=="campaign"||phase(x)!==state.phase))return false;
     if(state.category!=="Todos"&&(item.source!=="campaign"||x.category!==state.category))return false;
@@ -570,14 +572,14 @@ function renderActivations(){
 function selectActivation(id){const a=A.find(x=>x.id===id);if(!a)return;selectedActivation=id;activationSpotlight.innerHTML=`<div class="campaign" style="margin-bottom:12px"><strong style="font-size:13px">${esc(a.story)}</strong><small>${esc(a.type)} · ${esc(a.colorCode||"Sem código")}</small></div><div class="channel-dates">${[["MKT",a.mktDate],["DTC",a.dtcDate],["Marketplace",a.marketplaceDate],["Cliente",a.clientDate],["Trade",a.tradeDate]].map(z=>`<div class="channel-date"><b>${z[0]}</b><span>${fd(z[1])}</span></div>`).join("")}</div>`}
 
 function initReverse(){
- const eligibleWithD0=C.filter(c=>eligible(c)&&dt(c.launchTrade));
+ const eligibleWithD0=filtered().filter(c=>eligible(c)&&dt(c.launchTrade));
  const brands=[...new Set(eligibleWithD0.map(c=>c.brand))].sort();reverseBrand.innerHTML=brands.map(b=>`<option>${esc(b)}</option>`).join("");
  const first=eligibleWithD0.find(c=>dt(c.launchTrade)>=today())||eligibleWithD0[0];if(first){reverseBrand.value=first.brand;fillReverse(first.id)}
  reverseBrand.addEventListener("change",()=>{fillReverse();renderReverse()});reverseCampaign.addEventListener("change",()=>{selectedReverse=Number(reverseCampaign.value);renderReverse()});reverseStatus.addEventListener("change",renderReverse);reverseGroup.addEventListener("change",renderReverse)
 }
-function fillReverse(preferred=null){const x=C.filter(c=>eligible(c)&&dt(c.launchTrade)&&c.brand===reverseBrand.value).sort((a,b)=>dt(a.launchTrade)-dt(b.launchTrade));reverseCampaign.innerHTML=x.map(c=>`<option value="${c.id}">${esc(c.campaign)} · ${fd(c.launchTrade)}</option>`).join("");const c=x.find(c=>c.id===preferred)||x.find(c=>dt(c.launchTrade)>=today())||x[0];selectedReverse=c?c.id:null;if(c)reverseCampaign.value=String(c.id)}
+function fillReverse(preferred=null){const x=filtered().filter(c=>eligible(c)&&dt(c.launchTrade)&&c.brand===reverseBrand.value).sort((a,b)=>dt(a.launchTrade)-dt(b.launchTrade));reverseCampaign.innerHTML=x.map(c=>`<option value="${c.id}">${esc(c.campaign)} · ${fd(c.launchTrade)}</option>`).join("");const c=x.find(c=>c.id===preferred)||x.find(c=>dt(c.launchTrade)>=today())||x[0];selectedReverse=c?c.id:null;if(c)reverseCampaign.value=String(c.id)}
 function renderReverse(){
- const c=C.find(x=>x.id===selectedReverse);reverseCount.textContent=`${C.filter(c=>eligible(c)&&dt(c.launchTrade)).length} campanhas`;if(!c){reverseSummary.innerHTML=scheduleEl.innerHTML=reverseInsight.innerHTML="";return}
+ const c=C.find(x=>x.id===selectedReverse);reverseCount.textContent=`${filtered().filter(c=>eligible(c)&&dt(c.launchTrade)).length} campanhas`;if(!c){reverseSummary.innerHTML=scheduleEl.innerHTML=reverseInsight.innerHTML="";return}
  let s=buildSchedule(c);if(reverseStatus.value!=="Todos")s=s.filter(x=>stageStatus(x)===reverseStatus.value);if(reverseGroup.value!=="Todos")s=s.filter(x=>stageGroup(x.stage)===reverseGroup.value);
  const nk=nextKO(c),read=readinessPct(c),l=dt(c.launchTrade),ritual=buildSchedule(c).find(x=>norm(x.stage)==="ritual de lancamento");
  reverseTitle.textContent=`${c.campaign} · ${c.brand}`;
@@ -604,12 +606,12 @@ function renderGovernance(){
 }
 
 function initReadiness(){
- const elig=C.filter(eligible),brands=[...new Set(elig.map(c=>c.brand))].sort();readyBrand.innerHTML=`<option value="Todas as marcas">Todas as marcas</option>`+brands.map(b=>`<option>${esc(b)}</option>`).join("");
+ const elig=filtered().filter(eligible),brands=[...new Set(elig.map(c=>c.brand))].sort();readyBrand.innerHTML=`<option value="Todas as marcas">Todas as marcas</option>`+brands.map(b=>`<option>${esc(b)}</option>`).join("");
  const firstTracked=elig.find(c=>tracked(c)&&dt(c.launchTrade)>=today())||elig.find(tracked)||elig[0];if(firstTracked){readyBrand.value=firstTracked.brand;fillReadyCampaigns(firstTracked.id)}
  const areas=[...new Set(P.map(p=>p.area))].sort((a,b)=>a.localeCompare(b,"pt-BR"));readyArea.innerHTML=`<option value="Todos">Todas as áreas</option>`+areas.map(a=>`<option>${esc(a)}</option>`).join("");
  readyBrand.addEventListener("change",()=>{fillReadyCampaigns();renderReadiness()});readyCampaign.addEventListener("change",renderReadiness);readyArea.addEventListener("change",renderReadiness)
 }
-function fillReadyCampaigns(preferred=null){const brand=readyBrand.value,x=C.filter(c=>eligible(c)&&(brand==="Todas as marcas"||c.brand===brand)).sort((a,b)=>a.campaign.localeCompare(b.campaign,"pt-BR"));readyCampaign.innerHTML=x.map(c=>`<option value="${c.id}">${esc(c.campaign)} · ${tracked(c)?Math.round(readinessPct(c)||0)+"%":"sem checklist"}</option>`).join("");const c=x.find(c=>c.id===preferred)||x.find(tracked)||x[0];if(c)readyCampaign.value=String(c.id)}
+function fillReadyCampaigns(preferred=null){const brand=readyBrand.value,x=filtered().filter(c=>eligible(c)&&(brand==="Todas as marcas"||c.brand===brand)).sort((a,b)=>a.campaign.localeCompare(b.campaign,"pt-BR"));readyCampaign.innerHTML=x.map(c=>`<option value="${c.id}">${esc(c.campaign)} · ${tracked(c)?Math.round(readinessPct(c)||0)+"%":"sem checklist"}</option>`).join("");const c=x.find(c=>c.id===preferred)||x.find(tracked)||x[0];if(c)readyCampaign.value=String(c.id)}
 function openReadiness(id){const c=C.find(x=>x.id===id);if(!c||!eligible(c))return;readyBrand.value=c.brand;fillReadyCampaigns(id);renderReadiness();goTab("readiness")}
 function renderReadiness(){
  const c=C.find(x=>x.id===Number(readyCampaign.value));readinessCount.textContent=`${C.filter(eligible).length} elegíveis`;if(!c){readinessHead.innerHTML=scoreGrid.innerHTML=overallCard.innerHTML=areaSummary.innerHTML=readyTable.innerHTML="";return}
@@ -796,7 +798,7 @@ function openModal(id){
 }
 function closeModal(){modal.classList.remove("open")}modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()})
 function exportPortfolio(){const data=filtered(),h=["Marca","Campanha","Peso","Governança","Checklist","Readiness","Maturidade","Lançamento Trade","Status","Investimento","Meta Portas"];const rows=data.map(c=>{const p=readinessPct(c);return[c.brand,c.campaign,c.weight,eligible(c)?"Obrigatória":"Fora do fluxo",tracked(c)?"Ativo":"Ausente",p??"",maturity(p),c.launchTrade,c.status,c.investmentTotal,c.doorGoal]});const csv=[h,...rows].map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(";")).join("\n");const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="tradehub_portfolio_governanca_2026.csv";a.click();URL.revokeObjectURL(url)}
-function renderAll(){const data=filtered();renderExecutive(data);renderTimeline(data);renderPortfolio();renderReverse();renderGovernance();renderReadiness();renderQuality(data)}
+function renderAll(){const data=filtered();renderExecutive(data);renderTimeline(data);renderPortfolio();fillReverse();fillReadyCampaigns();renderReverse();renderGovernance();renderReadiness();renderQuality(data)}
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(b.dataset.target).classList.add("active")}));
 const hasAutomatedData=C.length>0||A.length>0||P.length>0||R.length>0;
 const updatedLabel=DB.meta?.updatedAt?` · ${DB.meta.updatedAt}`:"";
