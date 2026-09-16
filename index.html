@@ -356,7 +356,7 @@ function color(b){return COLORS[b]||"#98a2b3"}
 function eligible(c){return["OURO","PRATA"].includes(String(c.weight).toUpperCase())}
 function badge(text,cls="info"){return`<span class="badge ${cls}">${esc(text)}</span>`}
 function weightBadge(w){const s=String(w).toUpperCase();return badge(w,s==="OURO"?"ouro":s==="PRATA"?"prata":s==="BRONZE"?"bronze":"other")}
-function campaignYear(c){const d=dt(c.launchTrade)||dt(c.launchMkt)||dt(c.projectStart);return d?String(d.getFullYear()):"Sem ano"}
+function campaignYear(c){const raw=c?.year??c?.ano??c?.Ano??c?.ANO??c?.yearColumnO??c?.anoCalendario;const value=String(raw??"").trim();if(/^\d{4}$/.test(value))return value;const d=dt(c.launchTrade)||dt(c.launchMkt)||dt(c.projectStart);return d?String(d.getFullYear()):"Sem ano"}
 function phase(c){const t=today(),l=dt(c.launchTrade),r=dt(c.report);if(r&&r<t)return"Report vencido";if(l&&l<=t&&(!r||t<=r))return"Em execução";if(l){const x=diff(l,t);if(x>0&&x<=60)return"Próximos 60 dias";if(x>60)return"Futura"}return"Sem data"}
 function filtered(){const q=norm(state.search);return C.filter(c=>{const h=norm([c.campaign,c.brand,c.category,c.channel,c.month,c.status,c.weight,c.season].join(" "));return(!q||h.includes(q))&&(state.brand==="Todos"||c.brand===state.brand)&&(state.month==="Todos"||c.month===state.month)&&(state.year==="Todos"||campaignYear(c)===state.year)&&(state.weight==="Todos"||c.weight===state.weight)&&(state.phase==="Todos"||phase(c)===state.phase)&&(state.category==="Todos"||c.category===state.category)&&(state.maturity==="Todos"||maturity(readinessPct(c))===state.maturity)})}
 function prRows(c){return P.filter(p=>p.campaignId===c.id)}
